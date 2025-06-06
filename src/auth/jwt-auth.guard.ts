@@ -48,4 +48,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     console.log('[JwtAuthGuard] handleRequest: Autenticación exitosa. Usuario adjuntado.'); // LOG 12
     return user;
   }
+
+  getRequest(context: ExecutionContext) {
+    // Soporte para REST y GraphQL
+    if (context.getType() === 'http') {
+      return context.switchToHttp().getRequest();
+    }
+    // Para GraphQL
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { GqlExecutionContext } = require('@nestjs/graphql');
+      const ctx = GqlExecutionContext.create(context);
+      return ctx.getContext().req;
+    } catch (e) {
+      throw new UnauthorizedException('No se pudo extraer el request del contexto');
+    }
+  }
 }
