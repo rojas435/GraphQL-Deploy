@@ -1,48 +1,43 @@
-import 'reflect-metadata';
-import { Resolver, Query, Mutation, Arg, Ctx } from 'type-graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import { Injectable, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UseGuards, Injectable } from '@nestjs/common';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/guards/roles.decorator';
 
 @Injectable()
 @Resolver(() => User)
 export class UserResolver {
-  constructor(private readonly userService: UserService) {
-    console.log('UserResolver constructor called');
-    console.log('UserService injected:', this.userService ? 'Yes' : 'No');
-  }
+  constructor(private readonly userService: UserService) {}
 
   @Query(() => [User], { name: 'users' })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getUsers(@Ctx() ctx) {
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async getUsers() {
     return this.userService.getAll();
   }
 
   @Query(() => User, { name: 'user' })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getUser(@Arg('id') id: string, @Ctx() ctx) {
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async getUser(@Args('id', { type: () => String }) id: string) {
     return this.userService.findById(id);
   }
 
   @Mutation(() => User)
-  async createUser(@Arg('createUserDto') createUserDto: CreateUserDto) {
+  async createUser(@Args('createUserDto') createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
 
   @Mutation(() => User)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   async updateUser(
-    @Arg('id') id: string,
-    @Arg('updateUserDto') updateUserDto: UpdateUserDto,
-    @Ctx() ctx
+    @Args('id', { type: () => String }) id: string,
+    @Args('updateUserDto') updateUserDto: UpdateUserDto,
+    @Context() ctx
   ) {
     const user = ctx.req.user;
-    // Solo admin puede modificar cualquier usuario, los demás solo el suyo
     if (user.role !== 'admin' && user.id !== id) {
       throw new Error('No tienes permisos para modificar este usuario');
     }
@@ -50,9 +45,9 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('admin')
-  async deleteUser(@Arg('id') id: string) {
+  async deleteUser(@Args('id', { type: () => String }) id: string) {
     await this.userService.delete(id);
     return true;
   }

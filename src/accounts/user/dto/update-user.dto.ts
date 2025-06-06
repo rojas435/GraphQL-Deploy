@@ -1,7 +1,7 @@
 import 'reflect-metadata';
+import { InputType, Field } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
-import { Field, InputType } from 'type-graphql';
 
 @InputType()
 export class UpdateUserDto {

@@ -1,11 +1,10 @@
 import 'reflect-metadata';
+import { InputType, Field } from '@nestjs/graphql';
 import { ApiProperty } from "@nestjs/swagger";
 import { IsString, Length } from "class-validator";
-import { Field, InputType } from 'type-graphql';
 
 @InputType()
 export class CreateUserDto {
-
     @Field(() => String)
     @ApiProperty({ example: 'Juan Perez', description: 'Nombre del usuario' })
     @IsString({message: 'El nombre es necesario'})
@@ -21,5 +20,4 @@ export class CreateUserDto {
     @IsString({message: 'La contraseña es necesaria'})
     @Length(5, 20, {message: 'La contraseña debe tener entre 5 y 20 caracteres'})
     readonly password: string;
-
 }
