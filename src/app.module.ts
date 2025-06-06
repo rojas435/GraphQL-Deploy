@@ -2,7 +2,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard'; // Usar JwtAuthGuard como en Render
+
+// --- IMPORTACIONES DE MÓDULOS ---
 import { UserModule } from './accounts/user/user.module';
 import { FragranceModule } from './fragrance/fragrance/fragrance.module';
 import { ContainerModule } from './candles/container/container.module';
@@ -18,25 +22,74 @@ import { OrderItemModule } from './order_process/order-item/order-item.module';
 import { SubscriptionModule } from './order_process/subscription/subscription.module';
 import { EmotionalStateFragranceModule } from './fragrance/emotional-state_fragrance/emotional-state_fragrance.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
-import { GqlAuthGuard } from './auth/gql-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
+
+// --- IMPORTACIONES DE ENTIDADES ---
+import { User } from './accounts/user/entities/user.entity';
+import { Fragrance } from './fragrance/fragrance/entities/fragrance.entity';
+import { Container } from './candles/container/entities/container.entity';
+import { ConceptualCategory } from './scent_profiles/conceptual-category/entities/conceptual-category.entity';
+import { Option } from './scent_profiles/options/entities/option.entity';
+import { EmotionalState } from './scent_profiles/emotional-state/entities/emotional-state.entity';
+import { FragrancePyramid } from './fragrance/fragrance-pyramid/entities/fragrance-pyramid.entity';
+import { ComplementaryProduct } from './candles/complementary-product/entities/complementary-product.entity';
+import { CustomCandle } from './candles/custom-candle/entities/custom-candle.entity';
+import { CustomCandleComplementaryProduct } from './candles/custom-candle_complementary-product/entities/custom-candle_complementary-product.entity';
+import { Order } from './order_process/orders/entities/order.entity';
+import { OrderItem } from './order_process/order-item/entities/order-item.entity';
+import { Subscription } from './order_process/subscription/entities/subscription.entity';
+import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/entities/emotional-state_fragrance.entity';
+
+// --- IMPORTACIONES GRAPHQL ---
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true}),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: +(process.env.DB_PORT|| 5432),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      synchronize: true,
-      autoLoadEntities: true,
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+        const isProduction = nodeEnv === 'production';
+
+        if (isProduction) {
+          console.log(`[AppModule-Prod] Initializing DB connection. NODE_ENV: ${nodeEnv}`);
+        } else {
+          console.log(`[AppModule-Dev] DATABASE_URL: ${dbUrl ? '**** (set)' : 'NOT SET'}`);
+          console.log(`[AppModule-Dev] NODE_ENV: ${nodeEnv}`);
+          console.log(`[AppModule-Dev] Is Production: ${isProduction}`);
+          console.log(`[AppModule-Dev] SSL setting for DB: ${isProduction && dbUrl && dbUrl.includes('render.com')}`);
+        }
+
+        return {
+          type: 'postgres',
+          url: dbUrl,
+          entities: [
+            User,
+            Fragrance,
+            Container,
+            ConceptualCategory,
+            Option,
+            EmotionalState,
+            FragrancePyramid,
+            ComplementaryProduct,
+            CustomCandle,
+            CustomCandleComplementaryProduct,
+            Order,
+            OrderItem,
+            Subscription,
+            EmotionalStateFragrance,
+          ],
+          synchronize: false, // Nunca true en producción
+          ssl: isProduction && dbUrl && dbUrl.includes('render.com')
+            ? { rejectUnauthorized: false }
+            : false,
+          logging: isProduction ? ['error'] : true,
+        };
+      },
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -46,11 +99,12 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
       context: ({ req }) => ({ req }),
     }),
-    ContainerModule,  
-    FragranceModule, 
-    UserModule, ConceptualCategoryModule, OptionsModule, EmotionalStateModule, 
-    FragrancePyramidModule, ComplementaryProductModule, 
-    CustomCandleModule, CustomCandleComplementaryProductModule, OrdersModule, OrderItemModule, 
+    // Tus otros módulos
+    ContainerModule,
+    FragranceModule,
+    UserModule, ConceptualCategoryModule, OptionsModule, EmotionalStateModule,
+    FragrancePyramidModule, ComplementaryProductModule,
+    CustomCandleModule, CustomCandleComplementaryProductModule, OrdersModule, OrderItemModule,
     SubscriptionModule, EmotionalStateFragranceModule, AuthModule
   ],
   controllers: [AppController],
@@ -58,11 +112,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
     AppService,
     {
       provide: APP_GUARD,
-      useClass: GqlAuthGuard, // Usar GqlAuthGuard para GraphQL
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: JwtAuthGuard, // Usa JwtAuthGuard como en Render
     },
   ],
 })
