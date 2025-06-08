@@ -83,7 +83,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
             Subscription,
             EmotionalStateFragrance,
           ],
-          synchronize: true, // Nunca true en producción
+          synchronize: false, // Nunca true en producción
           ssl: isProduction && dbUrl && dbUrl.includes('render.com')
             ? { rejectUnauthorized: false }
             : false,
