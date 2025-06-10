@@ -66,15 +66,10 @@ export class CustomCandleComplementaryProductService {
     if (!customCandle) {
       throw new NotFoundException(`CustomCandle with id ${customCandleId} not found`);
     }
-    const relations = await this.repository.find({
+    return this.repository.find({
       where: { customCandle: { id: customCandleId } },
-      relations: ['complementaryProduct'],
+      relations: ['customCandle', 'complementaryProduct'],
     });
-    // Solo retorna el id de la relación y el id del producto complementario
-    return relations.map(rel => ({
-      id: rel.id,
-      complementaryProductId: rel.complementaryProduct.id,
-    }));
   }
 
   async update(id: number, updateDto: UpdateCustomCandleComplementaryProductDto) {
