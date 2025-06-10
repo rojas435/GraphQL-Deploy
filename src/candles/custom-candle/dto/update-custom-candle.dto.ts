@@ -47,5 +47,5 @@ export class UpdateCustomCandleDto {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsUrl()
-  qrCodeUrl?: string;
+  qrUrl?: string;
 }

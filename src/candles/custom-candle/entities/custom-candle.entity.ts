@@ -48,5 +48,5 @@ export class CustomCandle {
 
   @Field(() => String, { nullable: true })
   @Column({ nullable: true })
-  qrCodeUrl?: string;
+  qrUrl?: string;
 }
